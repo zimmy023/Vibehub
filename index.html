@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeHub</title>
+<style>
+:root{--bg:#000;--surface:#1b1b1b;--text:#fff;--muted:#a0a0a0;--line:#333;--o:#ff9000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.logo{font-size:32px;font-weight:800;letter-spacing:-1px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.logo span{background:var(--o);color:#000;padding:0 8px;border-radius:7px}
+.tag{color:var(--muted);margin:0 0 22px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:8px 14px}
+button.pri{background:var(--o);color:#000;border:0;font-weight:600}
+button.sm{padding:4px 10px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--o)}
+.thumb{height:90px;display:flex;align-items:center;justify-content:center;font-size:38px;color:#fff;font-weight:800}
+.card .in{padding:12px 14px}
+.card h3{margin:0 0 2px;font-size:17px}
+.card p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.sec{margin:28px 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.player{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.bar h2{margin:0;flex:1;font-size:20px}
+iframe{width:100%;height:min(70vh,560px);border:0;border-radius:10px;background:#fff}
+pre{margin:0;max-height:min(70vh,560px);overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.box{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:560px;max-height:90vh;overflow:auto}
+.box h2{margin:0 0 12px}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+textarea{min-height:160px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.empty{color:var(--muted);padding:30px;text-align:center;border:1px dashed var(--line);border-radius:14px}
+.req{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap}
+.hide{display:none!important}
+.hp{position:absolute;left:-9999px}
+.adminbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.foot{margin-top:40px;text-align:center}
+.foot a{color:var(--muted);font-size:13px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" id="home">Vibe<span>Hub</span></div>
+    <div class="adminbar">
+      <span id="adminTools" class="hide">
+        <button class="sm" id="toggle"></button>
+        <button class="sm" id="logout">Log out</button>
+      </span>
+      <button class="pri" id="add">+ Submit a game</button>
+    </div>
+  </header>
+  <p class="tag">Games made on pure vibes. Pick one and play it right here.</p>
+
+  <div id="listView">
+    <div class="grid" id="grid"></div>
+    <div id="reqSec" class="hide">
+      <div class="sec">Pending requests (only you see this)</div>
+      <div id="reqs"></div>
+    </div>
+  </div>
+
+  <div id="playView" class="hide player">
+    <div class="bar">
+      <button id="back">← Back</button>
+      <h2 id="pTitle"></h2>
+      <button class="sm" id="tabPlay">Play</button>
+      <button class="sm" id="tabCode">Code</button>
+      <button class="sm" id="full">Fullscreen</button>
+      <button class="sm hide" id="del">Delete</button>
+    </div>
+    <div id="pMeta" class="note" style="margin:0 0 10px"></div>
+    <iframe id="frame" sandbox="allow-scripts allow-pointer-lock" title="Game"></iframe>
+    <pre id="codeBox" class="hide"></pre>
+  </div>
+
+  <div class="foot"><a id="adminLink">Admin</a></div>
+</div>
+
+<div class="modal hide" id="modal">
+  <div class="box">
+    <h2 id="mTitle">Submit a game</h2>
+    <label>Game title</label><input id="fTitle" maxlength="60">
+    <label>Your name</label><input id="fAuthor" maxlength="40">
+    <label>Short description</label><input id="fDesc" maxlength="140">
+    <label>Game code (one self-contained HTML file)</label>
+    <textarea id="fCode" placeholder="Paste your HTML/CSS/JS here…"></textarea>
+    <label>…or choose a file</label><input type="file" id="fFile" accept=".html,.htm,text/html">
+    <input class="hp" id="fWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="note" id="fNote"></div>
+    <div class="row"><button id="cancel">Cancel</button><button class="pri" id="send">Send request</button></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const GRADS=["#ff9000,#b35f00","#2b2b2b,#0d0d0d","#ff9000,#2b2b2b","#444,#111","#ffb347,#ff9000"];
+let games=[],reqs=[],cur=null,admin=false,open=true;
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hash=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+async function api(url,method="GET",body){
+  const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||"Something went wrong");
+  return d;
+}
+
+async function load(){
+  const s=await api("/api/settings");open=s.open;admin=s.admin;
+  games=await api("/api/games");
+  reqs=admin?await api("/api/admin/requests"):[];
+  render();
+}
+
+function render(){
+  $("grid").innerHTML=games.length?games.map(g=>`<div class="card" data-id="${esc(g.id)}"><div class="thumb" style="background:linear-gradient(135deg,${GRADS[hash(g.title)%GRADS.length]})">${esc((g.title[0]||"?").toUpperCase())}</div><div class="in"><h3>${esc(g.title)}</h3><div class="note" style="margin:0">by ${esc(g.author)}</div><p>${esc(g.desc)}</p></div></div>`).join(""):`<div class="empty" style="grid-column:1/-1">No games yet. Be the first to submit one!</div>`;
+  $("grid").querySelectorAll(".card").forEach(c=>c.onclick=async()=>show(await api("/api/games/"+c.dataset.id)));
+  $("adminTools").classList.toggle("hide",!admin);
+  $("adminLink").classList.toggle("hide",admin);
+  $("toggle").textContent=open?"Close submissions":"Open submissions";
+  $("add").textContent=admin?"+ Publish a game":open?"+ Submit a game":"Submissions closed";
+  $("add").disabled=!admin&&!open;
+  $("reqSec").classList.toggle("hide",!(admin&&reqs.length));
+  $("reqs").innerHTML=reqs.map(r=>`<div class="req"><div><b>${esc(r.title)}</b> <span class="note">by ${esc(r.author)} · ${esc(r.desc)}</span></div><div><button class="sm" data-v="${r.id}">Preview</button> <button class="sm pri" data-a="${r.id}">Approve</button> <button class="sm" data-r="${r.id}">Reject</button></div></div>`).join("");
+  $("reqs").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(reqs.find(r=>r.id===b.dataset.v),true));
+  $("reqs").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(()=>api(`/api/admin/requests/${b.dataset.a}/approve`,"POST")));
+  $("reqs").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>act(()=>api(`/api/admin/requests/${b.dataset.r}`,"DELETE")));
+}
+async function act(fn){try{await fn();await load()}catch(e){alert(e.message)}}
+
+function show(g,isReq){
+  cur=g;$("listView").classList.add("hide");$("playView").classList.remove("hide");
+  $("pTitle").textContent=g.title;
+  $("pMeta").textContent=`by ${g.author}${g.desc?" · "+g.desc:""}${isReq?" · (pending request)":""}`;
+  $("frame").srcdoc=g.code;$("codeBox").textContent=g.code;
+  $("del").classList.toggle("hide",!(admin&&!isReq));
+  tab("play");
+}
+function tab(t){$("frame").classList.toggle("hide",t!=="play");$("codeBox").classList.toggle("hide",t!=="code");$("full").classList.toggle("hide",t!=="play")}
+function home(){$("playView").classList.add("hide");$("listView").classList.remove("hide");$("frame").srcdoc="";cur=null}
+
+$("add").onclick=()=>{
+  $("mTitle").textContent=admin?"Publish a game":"Submit a game";
+  $("send").textContent=admin?"Publish":"Send request";
+  $("fNote").textContent=admin?"Your game goes live immediately.":"The owner reviews every game before it appears. Limit: 3 submissions per hour.";
+  $("modal").classList.remove("hide");
+};
+$("cancel").onclick=()=>$("modal").classList.add("hide");
+$("fFile").onchange=async e=>{const f=e.target.files[0];if(f){$("fCode").value=await f.text();if(!$("fTitle").value)$("fTitle").value=f.name.replace(/\.html?$/i,"")}};
+$("send").onclick=async()=>{
+  const body={title:$("fTitle").value,author:$("fAuthor").value,desc:$("fDesc").value,code:$("fCode").value,website:$("fWeb").value};
+  try{
+    await api(admin?"/api/admin/games":"/api/requests","POST",body);
+    $("modal").classList.add("hide");
+    ["fTitle","fAuthor","fDesc","fCode","fFile"].forEach(i=>$(i).value="");
+    alert(admin?"Game published!":"Request sent! The owner will review it.");
+    load();
+  }catch(e){$("fNote").textContent=e.message}
+};
+$("back").onclick=home;$("home").onclick=home;
+$("tabPlay").onclick=()=>tab("play");$("tabCode").onclick=()=>tab("code");
+$("full").onclick=()=>{const f=$("frame");(f.requestFullscreen||f.webkitRequestFullscreen||(()=>{})).call(f)};
+$("del").onclick=()=>{if(cur&&confirm("Delete this game?"))act(async()=>{await api("/api/admin/games/"+cur.id,"DELETE");home()})};
+$("adminLink").onclick=async()=>{
+  const password=prompt("Admin password:");if(!password)return;
+  try{await api("/api/admin/login","POST",{password});await load()}catch(e){alert(e.message)}
+};
+$("logout").onclick=()=>act(()=>api("/api/admin/logout","POST"));
+$("toggle").onclick=()=>act(()=>api("/api/admin/settings","POST",{open:!open}));
+load();
+</script>
+</body>
+</html>
